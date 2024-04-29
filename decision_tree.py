@@ -138,23 +138,23 @@ if __name__=="__main__":
         ut2 = CalculateGini(dataframe, "income", ["low", "medium"])
         assert abs(ut2 - 0.4428571) < 0.00001, "Incorrect Gini calculation: {}".format(ut2)        
         
-    # Build the decision tree
-    model = Train(dataframe)
-
-    # Write the model tree structure to file
-    f = open("decision_tree_structure.txt", "w")
-    f.write(model.Format() + "\n")
-    f.close()
-
-    # Path where you downloaded the test data
-    DATA_PATH = './all_electronics_test.db'
-    dataframe = LoadData(DATA_PATH)
-
-    # Evaluate the test data
-    results=[]
-    for idxi, point_i in dataframe.iterrows():
-        results.append(model.Evaluate(point_i))
-    expected = dataframe["buys_computer"].to_list()
-
-    # Calculate and print metrics on the classifier model performance
-    CalculatePerformance(np.array(results), np.array(expected))
+    # # Build the decision tree
+    # model = Train(dataframe)
+    #
+    # # Write the model tree structure to file
+    # f = open("decision_tree_structure.txt", "w")
+    # f.write(model.Format() + "\n")
+    # f.close()
+    #
+    # # Path where you downloaded the test data
+    # DATA_PATH = './all_electronics_test.db'
+    # dataframe = LoadData(DATA_PATH)
+    #
+    # # Evaluate the test data
+    # results=[]
+    # for idxi, point_i in dataframe.iterrows():
+    #     results.append(model.Evaluate(point_i))
+    # expected = dataframe["buys_computer"].to_list()
+    #
+    # # Calculate and print metrics on the classifier model performance
+    # CalculatePerformance(np.array(results), np.array(expected))
