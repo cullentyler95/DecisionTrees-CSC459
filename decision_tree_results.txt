@@ -1,0 +1,11 @@
+Results: [0 1 0 1 1 1]
+Expected: [0 1 0 1 1 1]
+TP: 4
+TN: 2
+FP: 0
+FN: 0
+Accuracy: 1.0
+ErrorRate: 0.0
+Sensitivity: 1.0
+Specificity: 1.0
+Precision: 1.0

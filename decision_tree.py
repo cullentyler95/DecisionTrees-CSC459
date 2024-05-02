@@ -21,7 +21,7 @@ def LoadData(DB_PATH, TRAINING_DATA=False):
     error_message = "Unexpected input data shape: {}".format(dataframe.shape)
     assert (not TRAINING_DATA) or dataframe.shape == (14, 6), error_message
     assert TRAINING_DATA or dataframe.shape == (6, 6), error_message    
-    
+    print(dataframe)
     return dataframe
 
 # Node: the data type used to build the decision tree model
@@ -63,8 +63,13 @@ class Node():
     def Evaluate(self, data_point):
         
         # TODO: Traverse the tree to predict a label for the data point
-        label="INVALID"
-        
+        node = self
+        while not node.is_leaf:
+            if data_point[node.feature] in node.split:
+                node = node.lhs
+            else:
+                node = node.rhs
+        label = node.leaf_label
         return label
 
 # Calculate the impurity of the partition
@@ -72,8 +77,15 @@ def CalculateGiniImpurity(partition, label="buys_computer"):
 
     # TODO: Calculate the impurity of the partition (see equation 8.7 from the text)
     #       Do NOT use iteration or recursion in your calculations
-    result=0.0
-    
+    if len(partition) == 0:
+        return 0
+    total_count = len(partition)
+    positive_count = np.sum(partition[label] == 1)
+    negative_count = total_count - positive_count
+    p_positive = positive_count / total_count
+    p_negative = negative_count / total_count
+    result = 1 - (p_positive**2 + p_negative**2)
+
     return result
     
 # Calculate the Gini Index for a partition of the dataframe given the feature and split
@@ -81,32 +93,52 @@ def CalculateGini(dataframe, feature, split):
 
     # TODO: Calculate the Gini index of the split (see equation 8.8 from the text)
     #       Do NOT use iteration or recursion in your calculations
-    result = 0.0
-
+    lhs_partition = dataframe[dataframe[feature].isin(split)]
+    rhs_partition = dataframe[~dataframe[feature].isin(split)]
+    left_impurity = CalculateGiniImpurity(lhs_partition)
+    right_impurity = CalculateGiniImpurity(rhs_partition)
+    weight_left = len(lhs_partition) / len(dataframe)
+    weight_right = len(rhs_partition) / len(dataframe)
+    result = weight_left * left_impurity + weight_right * right_impurity
     return result
     
 # Train the model by learning the decision tree
 def Train(dataframe, label="buys_computer"):
 
     # TODO: Build up the decision tree using the Node class
-    model = None
+    if len(dataframe[label].unique()) == 1:
+        return Node(leaf_label=dataframe[label].iloc[0])
+    # This example simply splits on the first feature; modify to find the best split
+    feature = label
+    split_value = dataframe[feature].unique()[0]
+    split_set = [split_value]
+    left_df = dataframe[dataframe[feature].isin(split_set)]
+    right_df = dataframe[~dataframe[feature].isin(split_set)]
+    if len(left_df) == 0 or len(right_df) == 0:
+        return Node(leaf_label=dataframe[label].mode()[0])
+    lhs = Train(left_df, label)
+    rhs = Train(right_df, label)
+    model = Node(node_tuple=(feature, split_set, lhs, rhs))
+    print(f'Model Feature: {label}')
     return model
-
 # Calculate and print metrics on the classifier model performance
 def CalculatePerformance(results, expected):
 
     # TODO: Calculate the following performance metrics
     #       Do NOT use iteration or recursion in your calculations
-    TP = None
-    TN = None
-    FP = None
-    FN = None
-    Accuracy = None
-    ErrorRate = None
-    Sensitivity = None
-    Specificity = None
-    Precision = None
-    
+    results = np.array(results)
+    expected = np.array(expected)
+
+    TP = np.sum((results == 1) & (expected == 1))
+    TN = np.sum((results == 0) & (expected == 0))
+    FP = np.sum((results == 1) & (expected == 0))
+    FN = np.sum((results == 0) & (expected == 1))
+
+    Accuracy = (TP + TN) / len(results)
+    ErrorRate = (FP + FN) / len(results)
+    Sensitivity = TP / (TP + FN) if TP + FN != 0 else 0
+    Specificity = TN / (TN + FP) if TN + FP != 0 else 0
+    Precision = TP / (TP + FP) if TP + FP != 0 else 0
     # Write the model tree structure to file
     f = open("decision_tree_results.txt", "w")
     f.write("Results: " + str(results) + "\n")
@@ -138,23 +170,25 @@ if __name__=="__main__":
         ut2 = CalculateGini(dataframe, "income", ["low", "medium"])
         assert abs(ut2 - 0.4428571) < 0.00001, "Incorrect Gini calculation: {}".format(ut2)        
         
-    # # Build the decision tree
-    # model = Train(dataframe)
-    #
-    # # Write the model tree structure to file
-    # f = open("decision_tree_structure.txt", "w")
-    # f.write(model.Format() + "\n")
-    # f.close()
-    #
-    # # Path where you downloaded the test data
-    # DATA_PATH = './all_electronics_test.db'
-    # dataframe = LoadData(DATA_PATH)
-    #
-    # # Evaluate the test data
-    # results=[]
-    # for idxi, point_i in dataframe.iterrows():
-    #     results.append(model.Evaluate(point_i))
-    # expected = dataframe["buys_computer"].to_list()
-    #
-    # # Calculate and print metrics on the classifier model performance
-    # CalculatePerformance(np.array(results), np.array(expected))
+    # Build the decision tree
+    model = Train(dataframe)
+
+    # Write the model tree structure to file
+    f = open("decision_tree_structure.txt", "w")
+    f.write(model.Format() + "\n")
+    f.close()
+
+    # Path where you downloaded the test data
+    DATA_PATH = './all_electronics_test.db'
+    dataframe = LoadData(DATA_PATH)
+
+    # Evaluate the test data
+    results=[]
+    for idxi, point_i in dataframe.iterrows():
+        results.append(model.Evaluate(point_i))
+    expected = dataframe["buys_computer"].to_list()
+    print(f'Results: {results}')
+    print(f'Expected: {expected}')
+
+    # Calculate and print metrics on the classifier model performance
+    CalculatePerformance(np.array(results), np.array(expected))
